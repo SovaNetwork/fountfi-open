@@ -70,31 +70,22 @@ contract Conduit is RoleManaged {
      * @param amount The amount to collect
      * @return bool Success status
      */
-    function collectTokens(
-        address token,
-        address from,
-        uint256 amount
-    ) external returns (bool) {
+    function collectTokens(address token, address from, uint256 amount) external returns (bool) {
         if (amount == 0) revert InvalidAmount();
         if (!IRegistry(registry()).isStrategyToken(msg.sender)) revert InvalidDestination();
-        
+
         // Get the strategy from the calling tRWA
         address strategyAddress = ItRWA(msg.sender).strategy();
-        
+
         // For multi-collateral, verify token is allowed by strategy
         IMultiCollateralStrategy strategy = IMultiCollateralStrategy(strategyAddress);
-        IMultiCollateralRegistry collateralRegistry = IMultiCollateralRegistry(
-            strategy.collateralRegistry()
-        );
-        
-        require(
-            collateralRegistry.isAllowedCollateral(token),
-            "Invalid collateral"
-        );
-        
+        IMultiCollateralRegistry collateralRegistry = IMultiCollateralRegistry(strategy.collateralRegistry());
+
+        require(collateralRegistry.isAllowedCollateral(token), "Invalid collateral");
+
         // Transfer to strategy
         token.safeTransferFrom(from, strategyAddress, amount);
-        
+
         return true;
     }
 

@@ -230,50 +230,52 @@ contract tRWA is ERC4626, ItRWA, ReentrancyGuard {
      * @param receiver The address to receive shares
      * @return shares The amount of shares minted
      */
-    function depositCollateral(
-        address collateralToken,
-        uint256 collateralAmount,
-        address receiver
-    ) public virtual nonReentrant returns (uint256 shares) {
+    function depositCollateral(address collateralToken, uint256 collateralAmount, address receiver)
+        public
+        virtual
+        nonReentrant
+        returns (uint256 shares)
+    {
         // Get multi-collateral strategy
         IMultiCollateralStrategy multiStrategy = IMultiCollateralStrategy(strategy);
-        
+
         // Get registry and convert collateral to SovaBTC value
         IMultiCollateralRegistry mcRegistry = IMultiCollateralRegistry(multiStrategy.collateralRegistry());
         uint256 sovaBTCValue = mcRegistry.convertToSovaBTC(collateralToken, collateralAmount);
-        
+
         // Calculate shares based on SovaBTC value
         shares = previewDeposit(sovaBTCValue);
-        
+
         // Run deposit hooks with SovaBTC value
         HookInfo[] storage opHooks = operationHooks[OP_DEPOSIT];
         for (uint256 i = 0; i < opHooks.length;) {
-            IHook.HookOutput memory hookOutput = opHooks[i].hook.onBeforeDeposit(
-                address(this), msg.sender, sovaBTCValue, receiver
-            );
+            IHook.HookOutput memory hookOutput =
+                opHooks[i].hook.onBeforeDeposit(address(this), msg.sender, sovaBTCValue, receiver);
             if (!hookOutput.approved) {
                 revert HookCheckFailed(hookOutput.reason);
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
-        
+
         // Update last executed block for this operation type if hooks were called
         if (opHooks.length > 0) {
             lastExecutedBlock[OP_DEPOSIT] = block.number;
         }
-        
+
         // Transfer collateral through Conduit to strategy
         // Note: In production, Conduit would need collectTokens method
         // For now, transfer directly to strategy (for testing)
         collateralToken.safeTransferFrom(msg.sender, strategy, collateralAmount);
-        
+
         // Notify strategy of collateral deposit
         multiStrategy.depositCollateral(collateralToken, collateralAmount);
-        
+
         // Mint shares
         _mint(receiver, shares);
         _afterDeposit(sovaBTCValue, shares);
-        
+
         emit Deposit(msg.sender, receiver, sovaBTCValue, shares);
     }
 
