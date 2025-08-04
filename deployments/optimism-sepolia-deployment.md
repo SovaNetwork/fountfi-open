@@ -22,6 +22,19 @@
 - **Strategy**: `0xe7Ced7592F323a798A3aF6Cb3E041A9a7179F9A4`
 - **Vault (tRWA)**: `0x2b82b75A0bF1AA01C9474546904bb446FD4E75C7`
 
+### Managed Withdrawal Multi-Collateral Contracts (FIXED - 8 Decimals)
+**Deployment Date**: 2025-08-03 (Updated with decimal fix)
+
+#### Current Active Deployment (Use These)
+- **ManagedWithdrawRWA Vault**: `0x2005f3675f1D712716c1fcc0D79bB68522c21Cf4` ✅ ACTIVE
+- **ManagedWithdrawMultiCollateralStrategy**: `0x053b6D8a84814fC34720Ba6495E6d810C442aca2` ✅ ACTIVE
+- **RoleManager**: `0x948ca01B31626dc2fd6A0C597204Bd024045CadC` ✅ ACTIVE
+
+#### Previous Deployment (DEPRECATED - Had 18 decimal issue)
+- ~~ManagedWithdrawRWA Vault: `0x385177cEa70E5340ABc0c287CDb573ec0A49Edb4`~~ ❌ DO NOT USE
+- ~~Strategy: `0xf85E2681274eF80Daf3065083E8545590415AF80`~~ ❌ DO NOT USE
+- ~~RoleManager: `0x0Aee03ce6D7fbE67e95A840d5fc36Ab081974D9B`~~ ❌ DO NOT USE
+
 ## Deployment Transaction
 - **Transaction Hash**: `0x08fa5c8e0c5f37d1a6cf97b23c96f5f7f9b39c6f10e1d90c088ad87cc9e6a10e`
 - **Block Number**: 21227089
@@ -42,12 +55,25 @@ All contracts have been successfully verified on Optimism Sepolia Etherscan.
 - [Strategy](https://sepolia-optimistic.etherscan.io/address/0xe7Ced7592F323a798A3aF6Cb3E041A9a7179F9A4#code)
 - [Vault (tRWA)](https://sepolia-optimistic.etherscan.io/address/0x2b82b75A0bF1AA01C9474546904bb446FD4E75C7#code)
 
+### Managed Withdrawal Contracts (Current Active)
+- [ManagedWithdrawRWA Vault](https://sepolia-optimistic.etherscan.io/address/0x2005f3675f1D712716c1fcc0D79bB68522c21Cf4#code) ✅ ACTIVE
+- [ManagedWithdrawMultiCollateralStrategy](https://sepolia-optimistic.etherscan.io/address/0x053b6D8a84814fC34720Ba6495E6d810C442aca2#code) ✅ ACTIVE
+- [RoleManager (Managed)](https://sepolia-optimistic.etherscan.io/address/0x948ca01B31626dc2fd6A0C597204Bd024045CadC#code) ✅ ACTIVE
+
 ## Next Steps
 
 1. **Update `.env` file** with deployed addresses:
    ```bash
+   # Original Multi-Collateral Contracts
    VAULT_ADDRESS=0x2b82b75A0bF1AA01C9474546904bb446FD4E75C7
    STRATEGY_ADDRESS=0xe7Ced7592F323a798A3aF6Cb3E041A9a7179F9A4
+   
+   # Managed Withdrawal Contracts (FIXED - Use These!)
+   MANAGED_VAULT_ADDRESS=0x2005f3675f1D712716c1fcc0D79bB68522c21Cf4
+   MANAGED_STRATEGY_ADDRESS=0x053b6D8a84814fC34720Ba6495E6d810C442aca2
+   MANAGED_ROLE_MANAGER=0x948ca01B31626dc2fd6A0C597204Bd024045CadC
+   
+   # Infrastructure
    MULTI_COLLATERAL_REGISTRY=0x63c8215a478f8F57C548a8700420Ac5Bd8Dc3749
    SOVABTC_ADDRESS=0x7CAAC5eB64E3721a82121f3b9b247Cb6fFca7203
    WBTC_ADDRESS=0xc9FE3e6fF20fE4EB4F48B3993C947be51007D2C1

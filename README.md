@@ -4,7 +4,26 @@ Fountfi is a protocol for tokenizing Real World Assets (RWA) on-chain, providing
 
 ## Deployments
 
-### Base V1 Deployment \[2025-07-07\]
+### Optimism Sepolia - Multi-Collateral Deployment [2025-08-02]
+
+__Network:__ Optimism Sepolia (Chain ID: 11155420)
+
+__Deployer:__ [`0x0670faf0016E1bf591fEd8e0322689E894104F81`](https://sepolia-optimistic.etherscan.io/address/0x0670faf0016E1bf591fEd8e0322689E894104F81)
+
+| Contract | Address |
+|----------|---------|
+| Role Manager | [`0xE401DF98cA0e73371111A76AAbC067a84Eda1f7D`](https://sepolia-optimistic.etherscan.io/address/0xE401DF98cA0e73371111A76AAbC067a84Eda1f7D) |
+| Registry | [`0xcBBf02D619F4C53B1826B64Cc07Ea39Fb8442f13`](https://sepolia-optimistic.etherscan.io/address/0xcBBf02D619F4C53B1826B64Cc07Ea39Fb8442f13) |
+| Conduit | [`0x2BE0922fC3732b840d42A8912F0296321D9C4a2E`](https://sepolia-optimistic.etherscan.io/address/0x2BE0922fC3732b840d42A8912F0296321D9C4a2E) |
+| MultiCollateral Registry | [`0x63c8215a478f8F57C548a8700420Ac5Bd8Dc3749`](https://sepolia-optimistic.etherscan.io/address/0x63c8215a478f8F57C548a8700420Ac5Bd8Dc3749) |
+| Strategy | [`0xe7Ced7592F323a798A3aF6Cb3E041A9a7179F9A4`](https://sepolia-optimistic.etherscan.io/address/0xe7Ced7592F323a798A3aF6Cb3E041A9a7179F9A4) |
+| Vault (tRWA) | [`0x2b82b75A0bF1AA01C9474546904bb446FD4E75C7`](https://sepolia-optimistic.etherscan.io/address/0x2b82b75A0bF1AA01C9474546904bb446FD4E75C7) |
+| SovaBTC | [`0x7CAAC5eB64E3721a82121f3b9b247Cb6fFca7203`](https://sepolia-optimistic.etherscan.io/address/0x7CAAC5eB64E3721a82121f3b9b247Cb6fFca7203) |
+| WBTC | [`0xc9FE3e6fF20fE4EB4F48B3993C947be51007D2C1`](https://sepolia-optimistic.etherscan.io/address/0xc9FE3e6fF20fE4EB4F48B3993C947be51007D2C1) |
+| tBTC | [`0x0b00093Dcc35c1a887789e079453c64b641872b6`](https://sepolia-optimistic.etherscan.io/address/0x0b00093Dcc35c1a887789e079453c64b641872b6) |
+| cbBTC | [`0xfa4f9504B0f922221c209B8aC56294A31bC22618`](https://sepolia-optimistic.etherscan.io/address/0xfa4f9504B0f922221c209B8aC56294A31bC22618) |
+
+### Base V1 Deployment [2025-07-07]
 
 __Git Tag:__ `deploy-20250707`
 
@@ -22,9 +41,83 @@ __Deployer:__ [`0x76F2DAD4741CB0f4C8C56361d8cF5E05Bc01Bf28`](https://basescan.or
 | Strategy Implementation | [`0x66CA4C7973A73fd243563D068452F8D1C2D1E123`](https://basescan.org/address/0x66CA4C7973A73fd243563D068452F8D1C2D1E123) |
 | Mock USD Token | [`0x295F16c13feA14c55289d16D83b2ABAAD3B820f3`](https://basescan.org/address/0x295F16c13feA14c55289d16D83b2ABAAD3B820f3) |
 
+## Multi-Collateral System Overview
+
+The Fountfi protocol now supports multiple Bitcoin-pegged tokens as collateral, all standardized to SovaBTC for accounting purposes.
+
+### Multi-Collateral Flow Diagram
+
+```mermaid
+graph TB
+    subgraph "Users"
+        U1[User with WBTC]
+        U2[User with tBTC]
+        U3[User with cbBTC]
+        U4[User with SovaBTC]
+    end
+
+    subgraph "Multi-Collateral Infrastructure"
+        MCR[MultiCollateral Registry<br/>- Manages allowed tokens<br/>- Tracks conversion rates<br/>- Converts to/from SovaBTC]
+        COND[Conduit<br/>- Collects any allowed token<br/>- Routes to strategy]
+    end
+
+    subgraph "Vault & Strategy"
+        VAULT[tRWA Vault<br/>- ERC4626 shares<br/>- Multi-collateral aware<br/>- Returns SovaBTC]
+        STRAT[MultiCollateral Strategy<br/>- Holds all collateral types<br/>- Tracks balances per token<br/>- Values in SovaBTC terms]
+    end
+
+    subgraph "Collateral Tokens"
+        WBTC[WBTC<br/>8 decimals]
+        TBTC[tBTC<br/>18 decimals]
+        CBBTC[cbBTC<br/>8 decimals]
+        SBTC[SovaBTC<br/>8 decimals<br/>(Standard unit)]
+    end
+
+    %% User deposits
+    U1 -->|Deposit| WBTC
+    U2 -->|Deposit| TBTC
+    U3 -->|Deposit| CBBTC
+    U4 -->|Deposit| SBTC
+
+    %% Token approvals
+    WBTC -->|Approve| COND
+    TBTC -->|Approve| COND
+    CBBTC -->|Approve| COND
+    SBTC -->|Approve| COND
+
+    %% Conduit flow
+    COND -->|collectTokens| VAULT
+    VAULT -->|Check rates| MCR
+    MCR -->|Verify allowed| COND
+
+    %% Strategy receives tokens
+    VAULT -->|Forward tokens| STRAT
+    STRAT -->|Track balances| STRAT
+
+    %% Valuation flow
+    STRAT -->|Query rates| MCR
+    MCR -->|Return SovaBTC value| STRAT
+
+    %% Withdrawal flow
+    VAULT -.->|Withdraw shares| U1
+    STRAT -.->|Return SovaBTC| VAULT
+
+    style MCR fill:#f9f,stroke:#333,stroke-width:2px
+    style VAULT fill:#bbf,stroke:#333,stroke-width:2px
+    style SBTC fill:#ffd700,stroke:#333,stroke-width:2px
+```
+
 ## Key Terms and Concepts
 
 - **tRWA (Tokenized Real World Asset)**: An ERC4626-compatible token that represents ownership shares in an underlying real-world asset strategy.
+
+- **Multi-Collateral Support**: The protocol now accepts multiple Bitcoin-pegged tokens (WBTC, tBTC, cbBTC) as collateral, all valued in SovaBTC terms.
+
+- **SovaBTC**: The standard unit of account for all Bitcoin collateral in the protocol. All deposits are valued and withdrawals are made in SovaBTC.
+
+- **MultiCollateral Registry**: A new component that manages allowed collateral tokens and their conversion rates to SovaBTC, handling decimal differences between tokens.
+
+- **Collateral Conversion**: The protocol automatically converts between different Bitcoin-pegged tokens and SovaBTC based on configured exchange rates.
 
 - **Strategy**: A contract that manages underlying assets and deploys its own tRWA token. Strategies implement different investment approaches for the underlying assets.
 
@@ -346,6 +439,94 @@ function setMaxDeviation(uint16 deviation) external;
 - `ExcessiveDeviation()`: New price deviates too much from previous
 - `UnauthorizedUpdater()`: Caller cannot update prices
 
+#### Multi-Collateral Components
+
+##### MultiCollateral Registry
+
+Manages multiple Bitcoin-pegged tokens and their conversion rates to SovaBTC.
+
+**Key Functions:**
+
+```solidity
+// Add a new collateral token
+function addCollateral(
+    address token,
+    uint256 rate,
+    uint8 decimals
+) external;
+
+// Remove a collateral token  
+function removeCollateral(address token) external;
+
+// Update conversion rate for a collateral
+function updateRate(address token, uint256 newRate) external;
+
+// Convert collateral amount to SovaBTC value
+function convertToSovaBTC(address token, uint256 amount) external view returns (uint256);
+
+// Convert SovaBTC value to collateral amount
+function convertFromSovaBTC(address token, uint256 sovaBTCAmount) external view returns (uint256);
+
+// Get all allowed collateral tokens
+function getAllCollateralTokens() external view returns (address[] memory);
+
+// Check if token is allowed as collateral
+function isAllowedCollateral(address token) external view returns (bool);
+```
+
+**Access Control:**
+- All management functions require `PROTOCOL_ADMIN` role
+
+**Error Conditions:**
+- `InvalidCollateral()`: Token address is zero or already added
+- `InvalidRate()`: Rate is zero
+- `CollateralNotAllowed()`: Token not in allowed list
+
+##### MultiCollateral Strategy
+
+Manages multiple types of Bitcoin collateral and values them in SovaBTC terms.
+
+**Key Functions:**
+
+```solidity
+// Deposit collateral tokens (called by vault)
+function depositCollateral(address token, uint256 amount) external;
+
+// Deposit redemption funds in SovaBTC (manager only)
+function depositRedemptionFunds(uint256 amount) external;
+
+// Get total value of all collateral in SovaBTC terms
+function totalCollateralValue() external view returns (uint256);
+
+// Get balance (implements IStrategy interface)
+function balance() external view returns (uint256);
+```
+
+**State Management:**
+- Tracks individual balances for each collateral type
+- Maintains list of held collateral tokens
+- Values all holdings in SovaBTC terms
+
+##### Enhanced Conduit
+
+Extended to support multi-collateral deposits.
+
+**Additional Functions:**
+
+```solidity
+// Collect any allowed collateral token
+function collectTokens(
+    address token,
+    address from,
+    uint256 amount
+) external returns (bool);
+```
+
+**Validation:**
+- Verifies token is allowed by MultiCollateral Registry
+- Ensures caller is an authorized tRWA contract
+- Routes tokens to the appropriate strategy
+
 #### Role Manager
 
 Authentication and authorization system with hierarchical roles.
@@ -525,7 +706,66 @@ GatedMintEscrow.refundDeposit(depositId) or batchRefundDeposits([depositIds])
 - Reject Phase: `DepositRefunded(depositId, depositor, assets)` or `BatchDepositsRefunded(depositIds, totalAssets)`
 ```
 
-### 5. KYC/Compliance Validation Flow
+### 5. Multi-Collateral Deposit Flow
+
+```
+# Call Chain:
+tRWA.depositWithCollateral(collateralToken, amount, receiver)
+→ Run deposit hooks validation
+→ Check collateralToken is allowed via MultiCollateral Registry
+→ Calculate SovaBTC equivalent value
+  → MultiCollateralRegistry.convertToSovaBTC(collateralToken, amount)
+  → Handle decimal conversions (8, 18 decimals → 8 decimals)
+→ Transfer collateral via enhanced Conduit
+  → Conduit.collectTokens(collateralToken, sender, amount)
+  → Verify token allowed in registry
+  → Transfer to strategy
+→ Strategy receives and tracks collateral
+  → MultiCollateralStrategy.depositCollateral(collateralToken, amount)
+  → Update collateralBalances[token]
+  → Track in heldCollateralTokens array
+→ Calculate shares based on SovaBTC value
+→ Mint shares to receiver
+
+# State Changes:
+- Strategy: collateralBalances[token] increased
+- Strategy: totalCollateralValue() reflects new deposit
+- tRWA: shares minted based on SovaBTC value
+- Collateral token: transferred from user to strategy
+
+# Events:
+- Strategy: `CollateralDeposited(token, amount)`
+- tRWA: `Deposit(sender, receiver, sovaBTCValue, shares)`
+```
+
+### 6. Multi-Collateral Withdrawal Flow
+
+```
+# Call Chain:
+tRWA.withdraw(assets, receiver, owner) or redeem(shares, receiver, owner)
+→ Calculate SovaBTC amount to withdraw
+→ Run withdrawal hooks validation
+→ Strategy returns SovaBTC (not original collateral)
+  → Strategy must have sufficient SovaBTC balance
+  → Manager responsible for maintaining redemption liquidity
+→ Transfer SovaBTC to receiver via standard flow
+→ Burn shares from owner
+
+# Important Notes:
+- Withdrawals always return SovaBTC, not original collateral
+- Strategy manager must deposit SovaBTC redemption funds
+- Original collateral remains in strategy for investment
+
+# State Changes:
+- tRWA: shares burned
+- SovaBTC: transferred from strategy to receiver
+- Strategy: SovaBTC balance decreased
+
+# Events:
+- tRWA: `Withdraw(sender, receiver, owner, sovaBTCAmount, shares)`
+```
+
+### 7. KYC/Compliance Validation Flow
 
 ```
 # KYC Setup:
@@ -616,7 +856,24 @@ bytes memory initData = abi.encode(address(reporter));
 
 #### For Investors
 
-**Deposit Flow (Standard tRWA):**
+**Multi-Collateral Deposit Flow:**
+
+```solidity
+// 1. Choose your collateral token (WBTC, tBTC, cbBTC, or SovaBTC)
+address collateralToken = WBTC_ADDRESS; // Example: using WBTC
+
+// 2. Approve the collateral token to the protocol's Conduit
+IERC20(collateralToken).approve(conduit, amount);
+
+// 3. Get the vault (tRWA) address
+address vaultAddress = 0x2b82b75A0bF1AA01C9474546904bb446FD4E75C7; // From deployment
+
+// 4. Deposit collateral to receive shares
+// The vault will automatically convert to SovaBTC value
+ItRWA(vaultAddress).depositWithCollateral(collateralToken, amount, address(this));
+```
+
+**Standard Deposit Flow (Single Asset):**
 
 ```solidity
 // 1. Approve asset tokens to the protocol's Conduit
@@ -657,6 +914,28 @@ ItRWA(tokenAddress).redeem(shares, address(this), address(this));
 ```
 
 #### For Administrators
+
+**Multi-Collateral Management:**
+
+```solidity
+// Add a new collateral token
+MultiCollateralRegistry registry = MultiCollateralRegistry(registryAddress);
+registry.addCollateral(
+    newTokenAddress,     // Token address
+    1e18,               // Rate (1:1 with SovaBTC = 1e18)
+    8                   // Token decimals
+);
+
+// Update conversion rate for existing collateral
+registry.updateRate(tokenAddress, newRate);
+
+// Remove a collateral token
+registry.removeCollateral(tokenAddress);
+
+// Deposit redemption funds (as strategy manager)
+// Must deposit SovaBTC for user withdrawals
+IMultiCollateralStrategy(strategyAddress).depositRedemptionFunds(sovaBTCAmount);
+```
 
 **KYC Management:**
 
